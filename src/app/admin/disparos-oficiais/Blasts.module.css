@@ -1,0 +1,197 @@
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.pageTitle h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.pageTitle p {
+    color: var(--text-body);
+    font-size: 0.9rem;
+}
+
+/* Wizard Steps Grid */
+.wizardGrid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+}
+
+.leftCol,
+.rightCol {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Card Common */
+.card {
+    background-color: #fff;
+    border-radius: var(--radius-card);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Template Select */
+.templateSelect {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background-color: #F8FAFC;
+    outline: none;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    cursor: pointer;
+}
+
+/* Upload Zone */
+.uploadZone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #F8FAFC;
+}
+
+.uploadZone:hover {
+    border-color: var(--primary-blue);
+    background-color: #EFF6FF;
+}
+
+.uploadIcon {
+    color: var(--primary-blue);
+    margin-bottom: 12px;
+}
+
+.uploadText {
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 4px;
+}
+
+.uploadSub {
+    font-size: 0.85rem;
+    color: var(--text-body);
+}
+
+/* Stats / Live Monitor */
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.statItem {
+    background-color: #F8FAFC;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: 0.8rem;
+    color: var(--text-body);
+}
+
+.successVal {
+    color: var(--success-green);
+}
+
+.errorVal {
+    color: var(--alert-red);
+}
+
+/* Progress Bar */
+.progressContainer {
+    margin-top: 24px;
+}
+
+.progressLabel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.progressBarBg {
+    height: 10px;
+    background-color: #E2E8F0;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.progressBarFill {
+    height: 100%;
+    background-color: var(--primary-blue);
+    transition: width 0.5s ease;
+}
+
+/* Contacts Preview Table */
+.tableContainer {
+    margin-top: 16px;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-body);
+    font-weight: 600;
+}
+
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-heading);
+}
+
+.startBtn {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--primary-blue);
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+    transition: transform 0.1s;
+}
+
+.startBtn:hover {
+    background-color: var(--primary-blue-hover);
+    transform: translateY(-2px);
+}

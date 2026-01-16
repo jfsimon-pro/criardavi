@@ -1,0 +1,347 @@
+# 📋 Regras para Sistema Multi-WhatsApp
+
+## Regras Obrigatórias
+
+Este documento define as regras que **DEVEM** ser seguidas ao trabalhar com o sistema de múltiplas conexões WhatsApp.
+
+---
+
+## 🔴 Regra 1: Cada `connectionId` = Uma Instância Separada
+
+```typescript
+// ✅ CORRETO: Map com instâncias por connectionId (do banco de dados)
+const connections = new Map<number, ConnectionInstance>();
+// Chave = connectionId (WhatsAppConnection.id no Prisma)
+
+// ❌ ERRADO: Map por userId (limita a 1 conexão por usuário)
+const connections = new Map<number, ConnectionInstance>(); // userId como chave
+
+// ❌ ERRADO: Variáveis globais compartilhadas
+let sock: WASocket | null = null;
+let connectionId: number | null = null;
+```
+
+**Por quê?** Cada usuário pode ter **MÚLTIPLOS** números de WhatsApp conectados simultaneamente.
+
+---
+
+## 🔴 Regra 2: Sempre Passar `connectionId` (e `userId`) nas Funções
+
+Todas as funções relacionadas a Baileys **DEVEM** receber o `connectionId` como primeiro parâmetro:
+
+```typescript
+// ✅ CORRETO - connectionId primeiro, depois userId quando necessário
+export async function getChats(connectionId: number, userId: number) { ... }
+export async function sendMessage(connectionId: number, userId: number, chatId: string, text: string) { ... }
+export function getConnectionStatus(connectionId: number) { ... }
+export async function initBaileysConnection(connectionId: number, userId: number) { ... }
+
+// ❌ ERRADO - Sem connectionId
+export async function getChats(userId: number) { ... }
+export async function sendMessage(userId: number, chatId: string, text: string) { ... }
+```
+
+**Por quê?** O `connectionId` identifica QUAL WhatsApp usar, já que um usuário pode ter vários.
+
+---
+
+## 🔴 Regra 3: Verificar Assinaturas de Funções Antes de Chamar
+
+Antes de chamar qualquer função, **SEMPRE** verificar a assinatura:
+
+```typescript
+// Função grantNumberAccess em permissions.ts:
+export async function grantNumberAccess(
+    userId: number,
+    connectionId: number,
+    permissions: {           // <-- OBJETO, não booleans separados!
+        canRead?: boolean;
+        canWrite?: boolean;
+        canManage?: boolean;
+    },
+    grantedBy?: number       // <-- Opcional, número ou undefined
+)
+
+// ✅ CORRETO
+await grantNumberAccess(userId, connectionId, {
+    canRead: true,
+    canWrite: true,
+    canManage: true,
+});
+
+// ❌ ERRADO
+await grantNumberAccess(userId, connectionId, true, true, true, true);
+```
+
+---
+
+## 🔴 Regra 4: Recuperar `connectionId` se for `null`
+
+O `connectionId` pode ser `null` em reconexões. **SEMPRE** implementar fallback:
+
+```typescript
+// No handler de mensagens:
+if (!instance.connectionId && instance.phoneNumber) {
+    const recoveredId = await recoverConnectionIdFromDB(userId, instance.phoneNumber);
+    if (recoveredId) {
+        instance.connectionId = recoveredId;
+    }
+}
+```
+
+---
+
+## 🔴 Regra 5: Usar `instance` ao Invés de Variáveis Globais
+
+Sempre acessar dados via instância do Map:
+
+```typescript
+// ✅ CORRETO
+const instance = getConnectionInstance(userId);
+if (instance.sock && instance.connectionStatus === 'connected') { ... }
+
+// ❌ ERRADO
+if (sock && connectionStatus === 'connected') { ... }
+```
+
+---
+
+## 🔴 Regra 6: Event Listeners por Instância
+
+Cada conexão registra seus próprios event listeners:
+
+```typescript
+// ✅ CORRETO - Dentro do contexto de initBaileysConnection(userId)
+instance.sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    // Usa instance.connectionId, que é específico deste userId
+    await saveMessageToDB(msg, instance.connectionId);
+});
+
+// ❌ ERRADO - Usar connectionId global
+sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    await saveMessageToDB(msg, connectionId); // connectionId global!
+});
+```
+
+---
+
+## 🔴 Regra 7: APIs Recuperam `userId` da Sessão
+
+Todas as rotas de API devem obter o `userId` da sessão autenticada:
+
+```typescript
+// ✅ CORRETO
+export async function GET(request: NextRequest) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        return NextResponse.json({ success: false }, { status: 401 });
+    }
+    
+    const userId = parseInt(session.user.id);
+    const status = getConnectionStatus(userId);  // Passa userId
+    // ...
+}
+
+// ❌ ERRADO
+export async function GET(request: NextRequest) {
+    const status = getConnectionStatus();  // Sem userId!
+}
+```
+
+---
+
+## 🔴 Regra 8: Pastas de Autenticação Separadas por `connectionId`
+
+Cada conexão deve ter sua própria pasta de credenciais:
+
+```typescript
+// ✅ CORRETO - Pasta por connectionId
+const authFolder = `auth_info_baileys_conn_${connectionId}`;
+// Resulta em: auth_info_baileys_conn_1, auth_info_baileys_conn_5, etc.
+
+// ❌ ERRADO - Pasta por userId (limita a 1 conexão por usuário)
+const authFolder = `auth_info_baileys_${userId}`;
+
+// ❌ ERRADO - Pasta compartilhada
+const authFolder = 'auth_info_baileys';
+```
+
+**Por quê?** Um usuário pode ter múltiplos WhatsApps, cada um precisa de credenciais separadas.
+
+---
+
+## 🔴 Regra 9: Garantir `NumberAccess` em Reconexões
+
+Quando um usuário reconecta a um número existente, garantir que ele tem permissão:
+
+```typescript
+// Ao recuperar connectionId
+const existingAccess = await prisma.numberAccess.findFirst({
+    where: { userId, connectionId: connection.id }
+});
+
+if (!existingAccess) {
+    await grantNumberAccess(userId, connection.id, {
+        canRead: true,
+        canWrite: true,
+        canManage: true,
+    });
+}
+```
+
+---
+
+## 🔴 Regra 10: Logs Sempre com `userId`
+
+Todos os logs devem identificar qual usuário:
+
+```typescript
+// ✅ CORRETO
+console.log(`📩 User ${userId}: Received ${messages.length} message(s)`);
+console.log(`✅ User ${userId}: Message saved successfully`);
+
+// ❌ ERRADO
+console.log(`Received ${messages.length} messages`);  // Qual usuário?
+```
+
+---
+
+## 📋 Checklist de Revisão de Código
+
+Antes de fazer commit, verificar:
+
+- [ ] Todas as funções de Baileys recebem `userId`?
+- [ ] Estou usando `instance.` ao invés de variáveis globais?
+- [ ] As chamadas de função usam os tipos corretos de parâmetros?
+- [ ] Existe fallback para recuperar `connectionId` se for `null`?
+- [ ] Os logs identificam o `userId`?
+- [ ] As rotas de API obtêm `userId` da sessão?
+- [ ] As pastas de auth são separadas por usuário?
+- [ ] `NumberAccess` é garantido em todas as conexões?
+
+---
+
+## 🔧 Estrutura de Dados Correta
+
+```typescript
+interface ConnectionInstance {
+    sock: WASocket | null;
+    qrCodeData: string | null;
+    connectionStatus: 'disconnected' | 'connecting' | 'connected';
+    qrCodeTimeout: NodeJS.Timeout | null;
+    connectionTimeout: NodeJS.Timeout | null;
+    connectionId: number | null;      // ID no banco de dados
+    userId: number;                   // Qual usuário é dono
+    phoneNumber: string | null;       // Número conectado
+}
+
+// Armazenamento por userId
+const connections = new Map<number, ConnectionInstance>();
+```
+
+---
+
+---
+
+## 🔴 Regra 11: Criar Inbox ANTES de Conectar
+
+O registro `WhatsAppConnection` deve existir no banco ANTES de iniciar a conexão:
+
+```typescript
+// ✅ CORRETO - Criar slot primeiro, depois conectar
+const connectionId = await createInboxSlot(userId, "Vendas");
+await initBaileysConnection(connectionId, userId);
+
+// ❌ ERRADO - Conectar sem ter registro no banco
+await initBaileysConnection(null, userId); // connectionId null!
+```
+
+**Por quê?** Precisamos do `connectionId` para indexar o Map e salvar as credenciais.
+
+---
+
+## 🔴 Regra 12: APIs Usam `connectionId` na URL
+
+Todas as APIs de inbox devem ter o `connectionId` no path:
+
+```typescript
+// ✅ CORRETO - connectionId na URL
+GET  /api/baileys/inboxes                        // Lista todos os inboxes do usuário
+POST /api/baileys/inboxes                        // Cria novo inbox
+GET  /api/baileys/inboxes/[connectionId]/status  // Status de um inbox específico
+POST /api/baileys/inboxes/[connectionId]/connect // Conecta um inbox específico
+GET  /api/baileys/inboxes/[connectionId]/chats   // Chats de um inbox específico
+POST /api/baileys/inboxes/[connectionId]/send    // Envia mensagem via inbox específico
+
+// ❌ ERRADO - Sem connectionId (ambíguo quando há múltiplos)
+GET  /api/baileys/status                         // Qual inbox?
+POST /api/baileys/connect                        // Conectar qual?
+```
+
+---
+
+## 📋 Checklist de Revisão de Código
+
+Antes de fazer commit, verificar:
+
+- [ ] Todas as funções de Baileys recebem `connectionId`?
+- [ ] Estou usando `connections.get(connectionId)` ao invés de `userId`?
+- [ ] As chamadas de função usam os tipos corretos de parâmetros?
+- [ ] O `connectionId` é criado via `createInboxSlot` antes de conectar?
+- [ ] Os logs identificam o `connectionId` (e opcionalmente `userId`)?
+- [ ] As rotas de API usam `connectionId` na URL?
+- [ ] As pastas de auth são separadas por `connectionId`?
+- [ ] `NumberAccess` é garantido em todas as conexões?
+
+---
+
+## 🔧 Estrutura de Dados Correta
+
+```typescript
+interface ConnectionInstance {
+    sock: WASocket | null;
+    qrCodeData: string | null;
+    connectionStatus: 'disconnected' | 'connecting' | 'connected';
+    qrCodeTimeout: NodeJS.Timeout | null;
+    connectionTimeout: NodeJS.Timeout | null;
+    connectionId: number;             // ID no banco de dados (OBRIGATÓRIO)
+    userId: number;                   // Qual usuário é dono desta conexão
+    phoneNumber: string | null;       // Número conectado (preenchido após conexão)
+}
+
+// Armazenamento por connectionId
+const connections = new Map<number, ConnectionInstance>();
+```
+
+---
+
+## 🌐 Fluxo de Múltiplos Inboxes
+
+```
+1. Usuário clica em "+ Novo Inbox"
+   └── POST /api/baileys/inboxes
+       └── createInboxSlot(userId) → connectionId
+
+2. Redireciona para /atendente/inbox-pirata/[connectionId]
+   └── GET /api/baileys/inboxes/[connectionId]/status
+       └── getConnectionStatus(connectionId)
+
+3. Usuário clica em "Conectar WhatsApp"
+   └── POST /api/baileys/inboxes/[connectionId]/connect
+       └── initBaileysConnection(connectionId, userId)
+
+4. QR Code é exibido, usuário escaneia
+   └── GET /api/baileys/inboxes/[connectionId]/status (polling)
+       └── status muda para 'connected'
+
+5. Chats e mensagens são carregados
+   └── GET /api/baileys/inboxes/[connectionId]/chats
+   └── GET /api/baileys/inboxes/[connectionId]/messages?chatId=xxx
+```
+
+---
+
+## 📅 Última Atualização
+
+**2 de Janeiro de 2026**
+

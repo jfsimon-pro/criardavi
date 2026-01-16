@@ -1,0 +1,770 @@
+import makeWASocket, {
+    DisconnectReason,
+    useMultiFileAuthState,
+    ConnectionState,
+    WASocket,
+    WAMessage,
+    proto
+} from '@whiskeysockets/baileys';
+import { Boom } from '@hapi/boom';
+import P from 'pino';
+import QRCode from 'qrcode';
+import { prisma } from './prisma';
+import { 
+    grantNumberAccess, 
+    logActivity, 
+    recordChatParticipation, 
+    updateUserStats 
+} from './permissions';
+
+// Types for managing multiple connections
+interface ConnectionInstance {
+    sock: WASocket | null;
+    qrCodeData: string | null;
+    connectionStatus: 'disconnected' | 'connecting' | 'connected';
+    qrCodeTimeout: NodeJS.Timeout | null;
+    connectionId: number | null;
+    userId: number;
+    phoneNumber: string | null;
+}
+
+// Map to store multiple simultaneous connections (key = userId)
+const connections = new Map<number, ConnectionInstance>();
+
+const logger = P({ level: 'silent' }); // Silent logger for production
+
+/**
+ * Get or create a connection instance for a user
+ */
+function getConnectionInstance(userId: number): ConnectionInstance {
+    if (!connections.has(userId)) {
+        connections.set(userId, {
+            sock: null,
+            qrCodeData: null,
+            connectionStatus: 'disconnected',
+            qrCodeTimeout: null,
+            connectionId: null,
+            userId,
+            phoneNumber: null
+        });
+    }
+    return connections.get(userId)!;
+}
+
+/**
+ * Tenta reconectar automaticamente ao iniciar o servidor (se houver credenciais salvas)
+ */
+async function autoReconnect() {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const authPath = path.join(process.cwd(), 'auth_info_baileys');
+        
+        // Verifica se existe a pasta de autenticação
+        if (fs.existsSync(authPath)) {
+            console.log('🔄 Tentando reconectar automaticamente com sessão salva...');
+            await initBaileysConnection(1); // userId padrão = 1
+        } else {
+            console.log('📝 Nenhuma sessão salva encontrada. Aguardando primeira conexão...');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao tentar reconectar automaticamente:', error);
+    }
+}
+
+// Chama auto-reconexão quando o módulo é carregado (ao iniciar o servidor)
+autoReconnect();
+
+/**
+ * Helper function to save or update a chat in the database
+ */
+async function saveOrUpdateChat(chatId: string, connectionId: number, message?: WAMessage) {
+    const isGroup = chatId.includes('@g.us');
+    const contactNumber = chatId.replace('@s.whatsapp.net', '').replace('@g.us', '');
+    
+    // Get contact name from message or use number as fallback
+    const contactName = message?.pushName || contactNumber;
+    
+    const lastMessageText = message?.message?.conversation || 
+                           message?.message?.extendedTextMessage?.text ||
+                           message?.message?.imageMessage?.caption ||
+                           '[Mídia]';
+    
+    // Upsert chat
+    await prisma.chat.upsert({
+        where: { id: chatId },
+        update: {
+            lastMessageAt: message ? new Date(Number(message.messageTimestamp) * 1000) : new Date(),
+            lastMessagePreview: lastMessageText?.substring(0, 100) || null,
+            totalMessages: { increment: 1 },
+            unreadCount: message && !message.key.fromMe ? { increment: 1 } : undefined,
+        },
+        create: {
+            id: chatId,
+            connectionId,
+            contactName,
+            contactNumber,
+            isGroup,
+            lastMessageAt: message ? new Date(Number(message.messageTimestamp) * 1000) : new Date(),
+            lastMessagePreview: lastMessageText?.substring(0, 100) || null,
+            totalMessages: 1,
+            unreadCount: message && !message.key.fromMe ? 1 : 0,
+        }
+    });
+}
+
+/**
+ * Helper function to save a message to the database
+ */
+async function saveMessageToDB(msg: WAMessage) {
+    if (!msg.key.remoteJid || !currentConnectionId) return;
+    
+    const chatId = msg.key.remoteJid;
+    const messageId = msg.key.id || '';
+    
+    // Ensure chat exists
+    await saveOrUpdateChat(chatId, currentConnectionId, msg);
+    
+    // Extract message content
+    const text = msg.message?.conversation || 
+                msg.message?.extendedTextMessage?.text ||
+                msg.message?.imageMessage?.caption ||
+                msg.message?.videoMessage?.caption ||
+                null;
+    
+    // Check for media
+    const hasMedia = !!(msg.message?.imageMessage || 
+                       msg.message?.videoMessage || 
+                       msg.message?.documentMessage ||
+                       msg.message?.audioMessage ||
+                       msg.message?.stickerMessage);
+    
+    let mediaType = null;
+    if (msg.message?.imageMessage) mediaType = 'image';
+    else if (msg.message?.videoMessage) mediaType = 'video';
+    else if (msg.message?.documentMessage) mediaType = 'document';
+    else if (msg.message?.audioMessage) mediaType = 'audio';
+    else if (msg.message?.stickerMessage) mediaType = 'sticker';
+    
+    // Check if message already exists
+    const existingMessage = await prisma.message.findFirst({
+        where: { messageId }
+    });
+    
+    if (existingMessage) {
+        // Update status if it's an outgoing message
+        if (msg.key.fromMe) {
+            await prisma.message.update({
+                where: { id: existingMessage.id },
+                data: {
+                    status: msg.status === 3 ? 'READ' : msg.status === 2 ? 'DELIVERED' : 'SENT'
+                }
+            });
+        }
+        return;
+    }
+    
+    // Create new message
+    await prisma.message.create({
+        data: {
+            messageId,
+            chatId,
+            fromMe: msg.key.fromMe || false,
+            text,
+            hasMedia,
+            mediaType,
+            status: msg.key.fromMe 
+                ? (msg.status === 3 ? 'READ' : msg.status === 2 ? 'DELIVERED' : 'SENT')
+                : 'DELIVERED',
+            senderNumber: msg.key.participant || msg.key.remoteJid || null,
+            senderName: msg.pushName || null,
+            timestamp: new Date(Number(msg.messageTimestamp) * 1000),
+        }
+    });
+}
+
+/**
+ * Initialize Baileys WhatsApp connection
+ * Returns the QR code as base64 string when available
+ */
+export async function initBaileysConnection(userId: number = 1): Promise<string | null> {
+    try {
+        // Get or create connection instance for this user
+        const instance = getConnectionInstance(userId);
+        
+        // If already connected (not just connecting), return existing QR
+        if (instance.sock && instance.connectionStatus === 'connected') {
+            console.log(`✅ User ${userId} already connected`);
+            return instance.qrCodeData;
+        }
+
+        // If connecting with existing socket, return current QR
+        if (instance.sock && instance.connectionStatus === 'connecting' && instance.qrCodeData) {
+            console.log(`🔄 User ${userId} already connecting, returning existing QR`);
+            return instance.qrCodeData;
+        }
+
+        console.log(`🔄 Creating new Baileys connection for user ${userId}...`);
+
+        // Use multi-file auth state to persist login (one folder per user)
+        const authFolder = `auth_info_baileys_${userId}`;
+        const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+        
+        // Verifica se já existe credenciais salvas (sessão anterior)
+        const hasExistingCreds = state.creds && Object.keys(state.creds).length > 0;
+        if (hasExistingCreds) {
+            console.log(`🔑 User ${userId}: Credenciais encontradas! Tentando reconectar automaticamente...`);
+        } else {
+            console.log(`📂 User ${userId}: Nenhuma credencial salva. QR code será gerado...`);
+        }
+
+        // Create the socket connection with proper configuration
+        instance.sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: false,
+            logger,
+            // Configurações importantes para conexão estável
+            browser: ['Chrome (Linux)', '', ''],
+            syncFullHistory: false,
+            markOnlineOnConnect: false, // Não marcar online automaticamente
+            getMessage: async () => undefined, // Previne erros ao receber mensagens antigas
+            // Configurações de retry e timeout
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000,
+            // Desabilita geração de link preview que causa problemas
+            generateHighQualityLinkPreview: false,
+            // Evita sincronização completa que pode causar 515
+            emitOwnEvents: false,
+            fireInitQueries: true,
+            retryRequestDelayMs: 250,
+        });
+
+        console.log(`🔌 User ${userId}: Socket created, waiting for QR code...`);
+
+        // Reset status
+        instance.connectionStatus = 'connecting';
+        instance.qrCodeData = null;
+
+        // Clear any existing QR code timeout
+        if (instance.qrCodeTimeout) {
+            clearTimeout(instance.qrCodeTimeout);
+            instance.qrCodeTimeout = null;
+        }
+
+        // Timeout de segurança: se não gerar QR em 10s, limpa credenciais corrompidas
+        const connectionTimeout = setTimeout(() => {
+            if (instance.connectionStatus === 'connecting' && !instance.qrCodeData && instance.sock) {
+                console.log(`⚠️  User ${userId}: Timeout: Não gerou QR code em 10s. Credenciais podem estar corrompidas.`);
+                console.log(`🗑️  User ${userId}: Limpando credenciais e fechando conexão...`);
+                
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const authPath = path.join(process.cwd(), authFolder);
+                    
+                    if (fs.existsSync(authPath)) {
+                        fs.rmSync(authPath, { recursive: true, force: true });
+                        console.log(`✅ User ${userId}: Credenciais removidas. Clique em "Conectar" novamente.`);
+                    }
+                } catch (cleanupError) {
+                    console.error(`Erro ao limpar credenciais do user ${userId}:`, cleanupError);
+                }
+                
+                // Fecha a conexão
+                if (instance.sock) {
+                    instance.sock.end(undefined);
+                }
+                instance.connectionStatus = 'disconnected';
+                instance.sock = null;
+                instance.qrCodeData = null;
+            }
+        }, 10000); // 10 segundos
+
+        // Handle QR code updates
+        instance.sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr, isNewLogin, isOnline } = update;
+
+            console.log('📡 Connection update:', { 
+                connection, 
+                isNewLogin, 
+                isOnline,
+                hasQR: !!qr 
+            });
+
+            // If QR code is available, convert to base64
+            if (qr) {
+                try {
+                    qrCodeData = await QRCode.toDataURL(qr);
+                    console.log('✅ QR Code generated successfully');
+                    
+                    // Clear connection timeout (credenciais OK, gerou QR)
+                    clearTimeout(connectionTimeout);
+                    
+                    // Clear any existing timeout
+                    if (qrCodeTimeout) {
+                        clearTimeout(qrCodeTimeout);
+                    }
+                    
+                    // Set a long timeout just to clean up memory
+                    // The actual expiration is handled by Baileys (40s)
+                    qrCodeTimeout = setTimeout(() => {
+                        console.log('QR code cleanup after timeout');
+                        qrCodeData = null;
+                    }, 60000); // 1 minute cleanup
+                } catch (err) {
+                    console.error('Error generating QR code:', err);
+                }
+            }
+
+            // Handle connection state changes
+            if (connection === 'close') {
+                const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+                const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+                const isQRTimeout = statusCode === 401; // QR code expired
+                const shouldReconnect = !isLoggedOut && statusCode !== DisconnectReason.loggedOut;
+
+                console.log('Connection closed. Status code:', statusCode, 'isQRTimeout:', isQRTimeout, 'Reconnecting:', shouldReconnect);
+
+                // Clear timeouts
+                clearTimeout(connectionTimeout);
+                if (qrCodeTimeout) {
+                    clearTimeout(qrCodeTimeout);
+                    qrCodeTimeout = null;
+                }
+
+                // Se o QR code expirou (401) OU credenciais inválidas
+                if (isQRTimeout) {
+                    console.log('⚠️  Erro 401 detectado - Credenciais inválidas ou QR expirado');
+                    
+                    // Se nunca gerou QR nesta tentativa, significa que as credenciais salvas estão ruins
+                    if (!qrCodeData) {
+                        console.log('🗑️  Limpando credenciais corrompidas...');
+                        try {
+                            const fs = require('fs');
+                            const path = require('path');
+                            const authPath = path.join(process.cwd(), 'auth_info_baileys');
+                            
+                            if (fs.existsSync(authPath)) {
+                                fs.rmSync(authPath, { recursive: true, force: true });
+                                console.log('✅ Credenciais antigas removidas. Próxima tentativa gerará novo QR code.');
+                            }
+                        } catch (cleanupError) {
+                            console.error('Erro ao limpar credenciais:', cleanupError);
+                        }
+                    }
+                    
+                    connectionStatus = 'disconnected';
+                    sock = null;
+                    qrCodeData = null;
+                    currentConnectionId = null;
+                } else if (shouldReconnect) {
+                    connectionStatus = 'disconnected';
+                    sock = null;
+                    qrCodeData = null;
+                    currentConnectionId = null;
+                    // Don't auto-reconnect, let the user click "Connect" again
+                    console.log('Connection closed, waiting for user to reconnect...');
+                } else {
+                    connectionStatus = 'disconnected';
+                    sock = null;
+                }
+            } else if (connection === 'connecting') {
+                console.log('📱 WhatsApp is connecting... (phone scanning QR)');
+                connectionStatus = 'connecting';
+            } else if (connection === 'open') {
+                // Verifica se foi reconexão automática (sem QR) ou nova conexão (com QR)
+                const wasAutoReconnect = !qrCodeData && !isNewLogin;
+                
+                if (wasAutoReconnect) {
+                    console.log('🔄 ✅ Reconexão automática bem-sucedida! (sem QR code)');
+                } else {
+                    console.log('🎉 Baileys connection opened successfully!');
+                }
+                
+                connectionStatus = 'connected';
+                qrCodeData = null; // Clear QR code once connected
+                
+                // Clear timeouts
+                clearTimeout(connectionTimeout);
+                if (qrCodeTimeout) {
+                    clearTimeout(qrCodeTimeout);
+                    qrCodeTimeout = null;
+                }
+                
+                // Get connected phone number
+                const phoneNumber = sock?.user?.id?.split(':')[0] || null;
+                const displayName = sock?.user?.name || null;
+                
+                console.log('📞 Connected number:', phoneNumber);
+                console.log('👤 Display name:', displayName);
+                
+                // Create or update connection in database
+                try {
+                    // Find existing connection by phone number (if we have one)
+                    let dbConnection = phoneNumber 
+                        ? await prisma.whatsAppConnection.findUnique({
+                            where: { phoneNumber }
+                        })
+                        : null;
+                    
+                    if (dbConnection) {
+                        // Update existing
+                        dbConnection = await prisma.whatsAppConnection.update({
+                            where: { id: dbConnection.id },
+                            data: {
+                                status: 'CONNECTED',
+                                displayName: displayName || dbConnection.displayName,
+                                lastConnectedAt: new Date(),
+                            }
+                        });
+                        
+                        console.log('Updated existing connection:', dbConnection.id);
+                    } else if (phoneNumber) {
+                        // Create new only if we have a phone number
+                        dbConnection = await prisma.whatsAppConnection.create({
+                            data: {
+                                createdByUserId: userId,
+                                type: 'PIRATE',
+                                status: 'CONNECTED',
+                                phoneNumber,
+                                displayName: displayName || `WhatsApp ${phoneNumber}`,
+                                isShared: true,
+                                autoAssign: true,
+                                lastConnectedAt: new Date(),
+                            }
+                        });
+                        
+                        console.log('Created new connection:', dbConnection.id);
+                        
+                        // Concede acesso total para o criador
+                        await grantNumberAccess(userId, dbConnection.id, {
+                            canRead: true,
+                            canWrite: true,
+                            canManage: true,
+                        });
+                        
+                        // Log da criação
+                        await logActivity(
+                            'CONNECTION_CREATED',
+                            userId,
+                            'WhatsAppConnection',
+                            String(dbConnection.id),
+                            { phoneNumber, type: 'PIRATE' }
+                        );
+                    }
+                    
+                    if (dbConnection) {
+                        currentConnectionId = dbConnection.id;
+                        console.log('Connection saved to database with ID:', currentConnectionId);
+                        
+                        // Log da conexão
+                        await logActivity(
+                            'CONNECTION_CONNECTED',
+                            userId,
+                            'WhatsAppConnection',
+                            String(dbConnection.id),
+                            { phoneNumber }
+                        );
+                    }
+                } catch (dbError) {
+                    console.error('Error saving connection to database:', dbError);
+                }
+            }
+        });
+
+        // Save credentials whenever they're updated
+        sock.ev.on('creds.update', async () => {
+            console.log('💾 Saving credentials...');
+            await saveCreds();
+        });
+
+        // Handle incoming messages
+        sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type === 'notify') {
+                for (const msg of messages) {
+                    try {
+                        await saveMessageToDB(msg);
+                    } catch (error) {
+                        console.error('Error saving message to DB:', error);
+                    }
+                }
+            }
+        });
+
+        return qrCodeData;
+    } catch (error) {
+        console.error('Error initializing Baileys connection:', error);
+        connectionStatus = 'disconnected';
+        throw error;
+    }
+}
+
+/**
+ * Get current QR code data (base64)
+ */
+export function getQRCode(): string | null {
+    return qrCodeData;
+}
+
+/**
+ * Get current connection status
+ */
+export function getConnectionStatus(): 'disconnected' | 'connecting' | 'connected' | 'banned' {
+    return connectionStatus as any;
+}
+
+/**
+ * Disconnect from WhatsApp
+ */
+export async function disconnectBaileys(userId?: number): Promise<void> {
+    if (sock) {
+        await sock.logout();
+        sock = null;
+        connectionStatus = 'disconnected';
+        qrCodeData = null;
+        
+        // Update database
+        if (currentConnectionId) {
+            try {
+                await prisma.whatsAppConnection.update({
+                    where: { id: currentConnectionId },
+                    data: {
+                        status: 'DISCONNECTED',
+                        lastDisconnectedAt: new Date(),
+                    }
+                });
+                
+                // Log da desconexão
+                if (userId) {
+                    await logActivity(
+                        'CONNECTION_DISCONNECTED',
+                        userId,
+                        'WhatsAppConnection',
+                        String(currentConnectionId)
+                    );
+                }
+            } catch (error) {
+                console.error('Error updating disconnection in database:', error);
+            }
+            
+            currentConnectionId = null;
+        }
+    }
+}
+
+/**
+ * Get the active socket instance (for sending messages, etc.)
+ */
+export function getBaileysSocket(): WASocket | null {
+    return sock;
+}
+
+/**
+ * Get all chats with their latest messages from database
+ * Filtra pelos números que o usuário tem acesso
+ */
+export async function getChats(userId?: number) {
+    if (!sock || connectionStatus !== 'connected') {
+        return [];
+    }
+
+    try {
+        let connectionIds: number[] = [];
+        
+        if (userId) {
+            // Busca conexões que o usuário tem acesso
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { role: true }
+            });
+            
+            if (user?.role === 'ADMIN') {
+                // Admin vê todos os chats de todas as conexões
+                const connections = await prisma.whatsAppConnection.findMany({
+                    select: { id: true }
+                });
+                connectionIds = connections.map(c => c.id);
+            } else {
+                // Atendente vê apenas chats das conexões que tem acesso
+                const accesses = await prisma.numberAccess.findMany({
+                    where: {
+                        userId,
+                        canRead: true
+                    },
+                    select: { connectionId: true }
+                });
+                connectionIds = accesses.map(a => a.connectionId);
+            }
+        } else if (currentConnectionId) {
+            // Se não tem userId, usa apenas a conexão atual
+            connectionIds = [currentConnectionId];
+        }
+        
+        if (connectionIds.length === 0) {
+            return [];
+        }
+
+        // Busca informações das conexões para filtrar próprios números
+        const connections = await prisma.whatsAppConnection.findMany({
+            where: {
+                id: {
+                    in: connectionIds
+                }
+            },
+            select: {
+                id: true,
+                phoneNumber: true
+            }
+        });
+
+        // Cria lista de números próprios para filtrar
+        const ownNumbers = connections
+            .map(c => c.phoneNumber)
+            .filter(Boolean)
+            .map(num => [`${num}@s.whatsapp.net`, `${num}@g.us`])
+            .flat();
+
+        const chats = await prisma.chat.findMany({
+            where: {
+                connectionId: {
+                    in: connectionIds
+                },
+                // Filtra conversas com o próprio número
+                id: {
+                    notIn: ownNumbers
+                },
+                // Apenas conversas particulares (sem grupos)
+                isGroup: false
+            },
+            orderBy: {
+                lastMessageAt: 'desc'
+            },
+            select: {
+                id: true,
+                contactName: true,
+                contactNumber: true,
+                isGroup: true,
+                lastMessagePreview: true,
+                lastMessageAt: true,
+                unreadCount: true,
+                connectionId: true,
+                connection: {
+                    select: {
+                        displayName: true,
+                        phoneNumber: true,
+                    }
+                }
+            }
+        });
+
+        return chats.map(chat => ({
+            id: chat.id,
+            name: chat.contactName,
+            unreadCount: chat.unreadCount,
+            lastMessage: chat.lastMessagePreview || 'Sem mensagens',
+            timestamp: chat.lastMessageAt?.getTime() || Date.now(),
+            isGroup: chat.isGroup,
+            connectionName: chat.connection.displayName || chat.connection.phoneNumber || 'Sem nome',
+        }));
+    } catch (error) {
+        console.error('Error getting chats from database:', error);
+        return [];
+    }
+}
+
+/**
+ * Get messages for a specific chat from database
+ */
+export async function getChatMessages(chatId: string) {
+    try {
+        const messages = await prisma.message.findMany({
+            where: { chatId },
+            orderBy: { timestamp: 'asc' },
+            select: {
+                id: true,
+                messageId: true,
+                fromMe: true,
+                text: true,
+                timestamp: true,
+                status: true,
+                hasMedia: true,
+                mediaType: true,
+                mediaUrl: true,
+            }
+        });
+
+        return messages;
+    } catch (error) {
+        console.error('Error getting messages from database:', error);
+        return [];
+    }
+}
+
+/**
+ * Send a text message
+ */
+export async function sendMessage(to: string, message: string, userId?: number) {
+    if (!sock || connectionStatus !== 'connected' || !currentConnectionId) {
+        throw new Error('WhatsApp not connected');
+    }
+
+    try {
+        // Ensure the number has the correct format
+        const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`;
+        
+        const result = await sock.sendMessage(jid, { text: message });
+        
+        // Ensure chat exists
+        await saveOrUpdateChat(jid, currentConnectionId);
+        
+        // Save message to database
+        await prisma.message.create({
+            data: {
+                messageId: result?.key?.id || String(Date.now()),
+                chatId: jid,
+                fromMe: true,
+                text: message,
+                status: 'SENT',
+                sentByUserId: userId || null,
+                timestamp: new Date(),
+            }
+        });
+        
+        // Update chat's last message
+        await prisma.chat.update({
+            where: { id: jid },
+            data: {
+                lastMessageAt: new Date(),
+                lastMessagePreview: message.substring(0, 100),
+                totalMessages: { increment: 1 }
+            }
+        });
+        
+        // Registra participação do usuário no chat (se tiver userId)
+        if (userId) {
+            await recordChatParticipation(jid, userId, 'AGENT');
+            
+            // Incrementa contador de mensagens na participação
+            await prisma.chatParticipation.update({
+                where: {
+                    chatId_userId: {
+                        chatId: jid,
+                        userId
+                    }
+                },
+                data: {
+                    messagesSent: { increment: 1 }
+                }
+            }).catch(() => {}); // Ignora erro se não existir
+            
+            // Atualiza stats do usuário
+            await updateUserStats(userId, { messagesSent: 1 });
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error sending message:', error);
+        throw error;
+    }
+}

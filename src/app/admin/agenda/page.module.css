@@ -1,0 +1,244 @@
+.topHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.pageTitle {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.calendarControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.currentMonth {
+    font-size: 1.25rem;
+    color: var(--text-body);
+    font-weight: 500;
+}
+
+.navGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.navBtn {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-body);
+    font-weight: 500;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.navBtn:hover {
+    background-color: #F1F5F9;
+    color: var(--text-heading);
+}
+
+/* Calendar Grid */
+.calendarContainer {
+    background-color: #fff;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.calendarContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.calendarContainer:hover::before {
+    opacity: 1;
+}
+
+.lockOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    color: white;
+}
+
+.calendarContainer:hover .lockOverlay {
+    opacity: 1;
+}
+
+.weekHeader {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-light);
+    background-color: #FFFFFF;
+}
+
+.weekDay {
+    padding: 16px;
+    font-weight: 700;
+    color: var(--text-heading);
+    font-size: 0.95rem;
+    text-transform: capitalize;
+    border-right: 1px solid var(--border-light);
+}
+
+.weekDay:last-child {
+    border-right: none;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    /* auto-rows handled by content but we want min height */
+}
+
+.dayCell {
+    min-height: 120px;
+    border-right: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: 8px;
+    position: relative;
+    background-color: #ffffff;
+}
+
+.dayCell:nth-child(7n) {
+    border-right: none;
+}
+
+/* Last row bottom border handling if fixed rows, but dynamic is fine */
+
+.dayNumber {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 0.9rem;
+    color: var(--text-body);
+    margin-bottom: 8px;
+    padding-right: 4px;
+}
+
+.otherMonth {
+    color: #CBD5E1;
+    /* Lighter text for next/prev month days */
+    background-color: #FAFAFA;
+}
+
+/* Events */
+.eventPill {
+    padding: 6px 12px;
+    border-radius: 20px;
+    /* Full pill */
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eventPill:hover {
+    transform: scale(1.02);
+}
+
+.eventIcon {
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+}
+
+/* Event Color Variants */
+.eventBlue {
+    background-color: #E0F2FE;
+    /* Sky-100 */
+    color: #0369A1;
+    /* Sky-700 */
+}
+
+.eventBlue .eventIcon {
+    background-color: #0284C7;
+}
+
+.eventGreen {
+    background-color: #DCFCE7;
+    /* Green-100 */
+    color: #15803D;
+    /* Green-700 */
+}
+
+.eventGreen .eventIcon {
+    background-color: #16A34A;
+}
+
+.eventTeal {
+    background-color: #CCFBF1;
+    /* Teal-100 */
+    color: #0F766E;
+    /* Teal-700 */
+}
+
+.eventTeal .eventIcon {
+    background-color: #0D9488;
+}
+
+.eventOrange {
+    background-color: #FFF7ED;
+    /* Orange-100 */
+    color: #C2410C;
+    /* Orange-700 */
+}
+
+.eventOrange .eventIcon {
+    background-color: #EA580C;
+}

@@ -1,0 +1,382 @@
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background-color: #98ff98;
+    /* Light Green */
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: none;
+    color: #1E293B;
+    overflow-y: auto;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-left: 8px;
+}
+
+.logoImage {
+    height: 32px;
+    width: auto;
+}
+
+.collapseButton {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: #1E293B;
+    transition: all 0.2s;
+}
+
+.collapseButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.navLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #4b5563;
+    margin-bottom: 8px;
+    padding-left: 16px;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #1E293B;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.navItem:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.active {
+    background-color: #2D2D2D;
+    /* Dark Grey/Black */
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.active:hover {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.badge {
+    margin-left: auto;
+    background-color: #ffffff;
+    color: #1E293B;
+    font-size: 0.75rem;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+}
+
+.footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 20px;
+}
+
+.userProfile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #ddd;
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.875rem;
+}
+
+.userName {
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.userEmail {
+    font-size: 0.75rem;
+    color: #4b5563;
+}
+
+.logoutBtn {
+    margin-left: auto;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: transparent;
+    cursor: pointer;
+}
+
+/* Nav Group Styles for expandable sections */
+.navGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.navGroupHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #1E293B;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background-color: transparent;
+}
+
+.navGroupHeader:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navSubItems {
+    display: flex;
+    flex-direction: column;
+    padding-left: 16px;
+    margin-top: 4px;
+    gap: 2px;
+}
+
+.navSubItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    color: #475569;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.navSubItem:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #1E293B;
+}
+
+.navSubItem.active {
+    background-color: #2D2D2D;
+    color: #ffffff;
+}
+
+.navSubItem.active:hover {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.addInboxButton {
+    color: #6366F1 !important;
+    border: 1px dashed #C7D2FE;
+    margin-top: 4px;
+}
+
+.addInboxButton:hover {
+    background-color: #EEF2FF !important;
+    border-color: #6366F1;
+}
+
+/* Spin animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ===== MOBILE STYLES ===== */
+
+/* Mobile menu toggle button - Hidden on desktop */
+.mobileMenuButton {
+    display: none;
+}
+
+/* Overlay for mobile - Hidden by default */
+.overlay {
+    display: none;
+}
+
+/* Close button inside sidebar - Hidden on desktop */
+.closeButton {
+    display: none;
+}
+
+/* Mobile responsive breakpoint */
+@media (max-width: 768px) {
+    /* Show hamburger menu button */
+    .mobileMenuButton {
+        display: flex;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 1001;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #98ff98;
+        border: none;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+    }
+
+    .mobileMenuButton:active {
+        transform: scale(0.95);
+    }
+
+    /* Overlay - shown when menu is open */
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .overlayVisible {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Close button inside sidebar */
+    .closeButton {
+        display: flex;
+        position: absolute;
+        top: 20px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.08);
+        border: none;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        color: #1E293B;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .closeButton:hover {
+        background: rgba(0, 0, 0, 0.15);
+    }
+
+    /* Sidebar - Hidden by default on mobile */
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 280px;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        padding-top: 24px;
+        box-shadow: none;
+    }
+
+    /* Sidebar - Shown when open */
+    .sidebarOpen {
+        transform: translateX(0) !important;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .logo {
+        margin-bottom: 24px;
+        padding-right: 56px; /* Space for close button */
+    }
+
+    .collapseButton {
+        display: none;
+    }
+
+    .navItem {
+        padding: 14px 16px;
+    }
+
+    .navSubItem {
+        padding: 12px 16px;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 85vw;
+        max-width: 300px;
+    }
+
+    .mobileMenuButton {
+        top: 12px;
+        left: 12px;
+        width: 44px;
+        height: 44px;
+    }
+}

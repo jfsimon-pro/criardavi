@@ -1,0 +1,226 @@
+.container {
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--bg-page);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.card {
+    width: 100%;
+    max-width: 480px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logoContainer {
+    margin-bottom: 2rem;
+}
+
+.logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+}
+
+.heading {
+    font-size: 1.875rem;
+    /* 3xl equivalent */
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+    /* Font family is inherited from body */
+}
+
+.subHeading {
+    color: var(--text-body);
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.errorBox {
+    width: 100%;
+    background-color: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.successBox {
+    width: 100%;
+    background-color: #D1FAE5;
+    border: 1px solid #6EE7B7;
+    color: #065F46;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.input:disabled {
+    background-color: #F1F5F9;
+    cursor: not-allowed;
+}
+
+.submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+.form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-left: 0.25rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-pill);
+    background-color: var(--bg-card);
+    /* or white */
+    border: 1px solid var(--border-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    font-size: 1rem;
+    color: var(--text-heading);
+    transition: all 0.2s ease;
+}
+
+.input::placeholder {
+    color: #94A3B8;
+    /* Slate-400 */
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    /* transparent blue ring */
+}
+
+.submitButton {
+    width: 100%;
+    padding: 0.875rem;
+    background-color: #86EFAC;
+    /* Light green from reference */
+    color: #1E293B;
+    /* Dark text for contrast */
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(134, 239, 172, 0.4);
+}
+
+.submitButton:hover {
+    background-color: #4ADE80;
+    transform: translateY(-1px);
+}
+
+.divider {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.line {
+    height: 1px;
+    background-color: var(--border-light);
+    flex: 1;
+}
+
+.orText {
+    padding: 0 1rem;
+    font-size: 0.75rem;
+    color: var(--text-body);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.socialGrid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.socialButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    background-color: #F8FAFC;
+    /* Slate-50 */
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.socialButton:hover {
+    background-color: #F1F5F9;
+    /* Slate-100 */
+}
+
+.socialText {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-heading);
+}
+
+.footer {
+    margin-top: 2rem;
+    font-size: 0.875rem;
+    color: var(--text-body);
+}
+
+.link {
+    color: #7C3AED;
+    /* Purple from reference */
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+    .card {
+        padding: 2.5rem;
+    }
+}

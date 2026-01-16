@@ -1,0 +1,363 @@
+.container {
+    width: 100%;
+}
+
+/* Header Section */
+.topHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.titleGroup {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.pageTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1E293B;
+}
+
+.actionsGroup {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.btnDark {
+    background-color: #1E293B;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.funnelSelect {
+    padding: 8px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #475569;
+    font-size: 0.9rem;
+    width: 200px;
+}
+
+/* Sub Header (Funnel Name + New Stage) */
+.subHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.funnelTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.btnAddStage {
+    background-color: #86EFAC;
+    /* Light Green */
+    color: #14532D;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Board Container */
+.board {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 24px;
+    align-items: flex-start;
+}
+
+.column {
+    min-width: 300px;
+    width: 300px;
+    background-color: #F8FAFC;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid transparent;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.column::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.column:hover::before {
+    opacity: 1;
+}
+
+.lockOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    color: white;
+}
+
+.column:hover .lockOverlay {
+    opacity: 1;
+}
+
+/* Column Variants */
+.colBlue {
+    background-color: #F0F9FF;
+    border-color: #E0F2FE;
+}
+
+.colPurple {
+    background-color: #FAF5FF;
+    border-color: #F3E8FF;
+}
+
+.colGreen {
+    background-color: #F0FDF4;
+    border-color: #DCFCE7;
+}
+
+.colYellow {
+    background-color: #FEFCE8;
+    border-color: #FEF9C3;
+}
+
+.columnHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.columnTitle {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1E293B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.countBadge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+/* Badge Colors */
+.badgeBlue {
+    background-color: #BAE6FD;
+    color: #0369A1;
+}
+
+.badgePurple {
+    background-color: #E9D5FF;
+    color: #7E22CE;
+}
+
+.badgeGreen {
+    background-color: #BBF7D0;
+    color: #15803D;
+}
+
+.badgeYellow {
+    background-color: #FEF08A;
+    color: #854D0E;
+}
+
+.headerActions {
+    color: #94A3B8;
+    cursor: pointer;
+}
+
+/* Lead Card */
+.card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid transparent;
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.cardLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.cardInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.leadName {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1E293B;
+}
+
+.leadPhone {
+    font-size: 0.8rem;
+    color: #64748B;
+}
+
+.cardActions {
+    display: flex;
+    gap: 8px;
+}
+
+.iconBtn {
+    color: #94A3B8;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+}
+
+.iconBtn:hover {
+    color: #475569;
+}
+
+/* Add Lead Button at bottom of column */
+.btnAddLead {
+    width: 100%;
+    padding: 12px;
+    border: 1px dashed #CBD5E1;
+    border-radius: 8px;
+    background: transparent;
+    color: #94A3B8;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btnAddLead:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+    border-color: #94A3B8;
+    color: #64748B;
+}
+
+/* Add Stage Form Box */
+.addStageBox {
+    background-color: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    width: fit-content;
+    min-width: 400px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.addStageTitle {
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #1E293B;
+}
+
+.inputStage {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.addStageActions {
+    display: flex;
+    gap: 8px;
+}
+
+.btnConfirm {
+    background-color: #86EFAC;
+    color: #14532D;
+    padding: 8px 24px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btnCancel {
+    background-color: #F1F5F9;
+    color: #475569;
+    padding: 8px 24px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}

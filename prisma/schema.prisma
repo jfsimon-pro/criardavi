@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ATENDENTE
+}
+
+enum ConnectionType {
+  OFFICIAL  // Meta API oficial
+  PIRATE    // Baileys via QR Code
+}
+
+enum ConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model User {
+  id                  Int                     @id @default(autoincrement())
+  name                String
+  email               String                  @unique
+  password            String
+  role                UserRole                @default(ATENDENTE)
+  isActive            Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  
+  // Relacionamentos
+  createdConnections  WhatsAppConnection[]    @relation("ConnectionCreator")
+  assignedChats       Chat[]                  @relation("AssignedAgent")
+  sentMessages        Message[]
+  numberAccess        NumberAccess[]
+  chatParticipations  ChatParticipation[]
+}
+
+// Conexões do WhatsApp (número/linha única)
+// Representa um número de WhatsApp específico (oficial ou pirata)
+model WhatsAppConnection {
+  id                  Int                     @id @default(autoincrement())
+  
+  // Quem criou/configurou esta conexão (geralmente um admin)
+  createdByUserId     Int
+  createdBy           User                    @relation("ConnectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  
+  type                ConnectionType          @default(PIRATE)
+  status              ConnectionStatus        @default(DISCONNECTED)
+  
+  // Identificação do número
+  phoneNumber         String?                 // Ex: 5511999999999
+  phoneNumberId       String?                 // ID da Meta API (para oficial)
+  displayName         String?                 // Nome/Alias do número (ex: "Suporte", "Vendas")
+  
+  // Dados da sessão Baileys (para pirata)
+  authState           Json?                   // Estado de autenticação
+  
+  // Configurações
+  isShared            Boolean                 @default(true)   // Se pode ser usado por múltiplos usuários
+  autoAssign          Boolean                 @default(true)   // Auto-atribuir chats para atendentes
+  
+  // Timestamps
+  lastConnectedAt     DateTime?
+  lastDisconnectedAt  DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  
+  // Relacionamentos
+  chats               Chat[]
+  numberAccess        NumberAccess[]
+  
+  @@unique([phoneNumber])
+  @@index([status])
+  @@index([type])
+}
+
+// Controle de acesso aos números (quem pode usar qual número)
+model NumberAccess {
+  id              Int                     @id @default(autoincrement())
+  
+  userId          Int
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  connectionId    Int
+  connection      WhatsAppConnection      @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  
+  // Permissões
+  canRead         Boolean                 @default(true)   // Ver conversas
+  canWrite        Boolean                 @default(true)   // Enviar mensagens
+  canManage       Boolean                 @default(false)  // Conectar/desconectar
+  
+  grantedAt       DateTime                @default(now())
+  grantedBy       Int?                    // ID do usuário que concedeu acesso
+  
+  @@unique([userId, connectionId])
+  @@index([userId])
+  @@index([connectionId])
+}
+
+// Conversas/Chats
+model Chat {
+  id                  String                @id // chatId do WhatsApp (ex: 5511999999999@s.whatsapp.net)
+  connectionId        Int
+  connection          WhatsAppConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  
+  // Dados do contato
+  contactName         String
+  contactNumber       String
+  isGroup             Boolean               @default(false)
+  groupName           String?
+  
+  // Gerenciamento - Atendente principal atualmente responsável
+  assignedAgentId     Int?
+  assignedAgent       User?                 @relation("AssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  assignedAt          DateTime?
+  
+  // Status da conversa
+  isAIActive          Boolean               @default(true)  // Se a IA está respondendo
+  isHumanTakeover     Boolean               @default(false) // Se humano assumiu
+  isClosed            Boolean               @default(false)
+  closedAt            DateTime?
+  closedReason        String?
+  
+  // Categorização
+  tags                String[]              @default([])    // Tags para organização
+  priority            String                @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  department          String?               // Vendas, Suporte, etc
+  
+  // Contadores
+  unreadCount         Int                   @default(0)
+  totalMessages       Int                   @default(0)
+  
+  // Timestamps
+  lastMessageAt       DateTime?
+  lastMessagePreview  String?
+  firstMessageAt      DateTime?
+  
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Relacionamentos
+  messages            Message[]
+  participants        ChatParticipation[]
+  
+  @@index([connectionId])
+  @@index([assignedAgentId])
+  @@index([lastMessageAt])
+  @@index([isClosed])
+  @@index([priority])
+}
+
+// Histórico de participação em chats (quem atendeu/participou)
+model ChatParticipation {
+  id              Int                     @id @default(autoincrement())
+  
+  chatId          String
+  chat            Chat                    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  userId          Int
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Tipo de participação
+  role            String                  @default("AGENT") // AGENT, SUPERVISOR, OBSERVER
+  
+  // Timestamps
+  joinedAt        DateTime                @default(now())
+  leftAt          DateTime?
+  
+  // Estatísticas
+  messagesSent    Int                     @default(0)
+  
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
+}
+
+// Mensagens
+model Message {
+  id                String            @id @default(cuid())
+  messageId         String            // ID original do WhatsApp
+  
+  chatId            String
+  chat              Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  // Dados da mensagem
+  fromMe            Boolean           @default(false)
+  text              String?           @db.Text
+  
+  // Mídia
+  hasMedia          Boolean           @default(false)
+  mediaType         String?           // image, video, document, audio, sticker
+  mediaUrl          String?
+  mediaMimeType     String?
+  mediaCaption      String?
+  audioTranscription String?          @db.Text // Transcrição de áudio via Whisper
+  
+  // Status
+  status            MessageStatus     @default(SENT)
+  
+  // Sender info (se não for fromMe)
+  senderNumber      String?
+  senderName        String?
+  
+  // Se foi enviada por um usuário do sistema (atendente)
+  sentByUserId      Int?
+  sentByUser        User?             @relation(fields: [sentByUserId], references: [id], onDelete: SetNull)
+  
+  // Se foi enviada pela IA
+  sentByAI          Boolean           @default(false)
+  aiContext         Json?             // Contexto da IA para analytics
+  
+  // Timestamps
+  timestamp         DateTime          // Timestamp real do WhatsApp
+  createdAt         DateTime          @default(now())
+  
+  @@index([chatId])
+  @@index([timestamp])
+  @@index([sentByUserId])
+  @@index([messageId, chatId]) // Índice composto para busca rápida de mensagens duplicadas
+}
+
+// Campanhas de disparo
+model Campaign {
+  id                Int               @id @default(autoincrement())
+  name              String
+  description       String?
+  
+  connectionId      Int
+  
+  // Configurações
+  messageTemplate   String            @db.Text
+  targetList        Json              // Lista de números ou filtros
+  
+  // Agendamento
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  
+  // Estatísticas
+  totalTargets      Int               @default(0)
+  sentCount         Int               @default(0)
+  deliveredCount    Int               @default(0)
+  readCount         Int               @default(0)
+  failedCount       Int               @default(0)
+  
+  status            String            @default("DRAFT") // DRAFT, SCHEDULED, RUNNING, COMPLETED, FAILED
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+// Configurações da IA
+model AIConfig {
+  id                Int               @id @default(autoincrement())
+  
+  // Configurações gerais
+  isActive          Boolean           @default(true)
+  model             String            @default("gpt-4")
+  temperature       Float             @default(0.7)
+  maxTokens         Int               @default(500)
+  
+  // Personalidade
+  systemPrompt      String            @db.Text
+  greeting          String?
+  fallbackMessage   String?
+  
+  // Horários de atendimento
+  workingHours      Json?             // { start: "09:00", end: "18:00", days: [1,2,3,4,5] }
+  
+  // Limites
+  maxMessagesPerChat Int             @default(10)  // Máx de msgs antes de escalar para humano
+  responseDelay     Int               @default(2)   // Segundos de delay para parecer humano
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+// Templates de mensagem
+model MessageTemplate {
+  id                Int               @id @default(autoincrement())
+  name              String
+  category          String            // GREETING, FAQ, CLOSING, etc
+  
+  content           String            @db.Text
+  variables         Json?             // Variáveis disponíveis: {name}, {product}, etc
+  
+  usageCount        Int               @default(0)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([category])
+}
+
+// Log de atividades do sistema (auditoria)
+model ActivityLog {
+  id              Int               @id @default(autoincrement())
+  
+  userId          Int?              // Pode ser null para ações automáticas
+  userName        String?           // Snapshot do nome para histórico
+  userRole        UserRole?
+  
+  action          String            // CHAT_ASSIGNED, MESSAGE_SENT, CONNECTION_CREATED, etc
+  entity          String            // Chat, Message, Connection, User, etc
+  entityId        String?           // ID da entidade afetada
+  
+  description     String            @db.Text
+  metadata        Json?             // Dados adicionais da ação
+  
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime          @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+// Estatísticas agregadas por usuário (para dashboards)
+model UserStats {
+  id                    Int               @id @default(autoincrement())
+  userId                Int               @unique
+  
+  // Contadores de mensagens
+  totalMessagesSent     Int               @default(0)
+  totalMessagesReceived Int               @default(0)
+  
+  // Contadores de chats
+  totalChatsHandled     Int               @default(0)
+  activeChats           Int               @default(0)
+  closedChats           Int               @default(0)
+  
+  // Tempo médio de resposta (em segundos)
+  avgResponseTime       Float?
+  
+  // Rating (se implementado no futuro)
+  avgRating             Float?
+  totalRatings          Int               @default(0)
+  
+  // Disponibilidade
+  totalOnlineTime       Int               @default(0) // em minutos
+  lastActiveAt          DateTime?
+  
+  updatedAt             DateTime          @updatedAt
+  
+  @@index([userId])
+}

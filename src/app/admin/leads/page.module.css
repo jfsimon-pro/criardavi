@@ -1,0 +1,285 @@
+.topHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.pageTitle {
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: var(--text-heading);
+}
+
+.controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.searchWrapper {
+    position: relative;
+    width: 300px;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 16px 10px 40px;
+    /* Space for icon */
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text-heading);
+    background-color: #fff;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-body);
+    pointer-events: none;
+}
+
+.btnFilter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border: 1px solid var(--border-light);
+    color: var(--primary-blue);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.btnAdd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #86EFAC;
+    /* Light Green */
+    color: #14532D;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.btnAdd:hover {
+    filter: brightness(0.95);
+}
+
+/* Table */
+.tableContainer {
+    width: 100%;
+    background-color: transparent;
+    position: relative;
+    cursor: pointer;
+}
+
+.tableContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 12px;
+}
+
+.tableContainer:hover::before {
+    opacity: 1;
+}
+
+.lockOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    color: white;
+}
+
+.tableContainer:hover .lockOverlay {
+    opacity: 1;
+}
+
+.tableHeader {
+    display: grid;
+    grid-template-columns: 80px 2fr 1.5fr 2fr 1.5fr 1.5fr 40px;
+    padding: 16px 24px;
+    border-bottom: 1px solid transparent;
+    color: #64748B;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.tableRow {
+    display: grid;
+    grid-template-columns: 80px 2fr 1.5fr 2fr 1.5fr 1.5fr 40px;
+    padding: 16px 24px;
+    background-color: #fff;
+    border-radius: 12px;
+    /* Individual pill rows? Or valid white bg rows. Screenshot: White rows separated by space? Looks like alternate or white bg. Let's assume white rows on page bg.*/
+    margin-bottom: 8px;
+    align-items: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.name {
+    font-weight: 700;
+    color: var(--text-heading);
+    font-size: 0.95rem;
+}
+
+.cell {
+    color: var(--text-heading);
+    font-size: 0.9rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: center;
+    color: #94A3B8;
+    cursor: pointer;
+}
+
+/* Avatar Colors from screenshot */
+.avatarPurple {
+    background-color: #8B5CF6;
+}
+
+.avatarRed {
+    background-color: #F87171;
+}
+
+.avatarGray {
+    background-color: #E2E8F0;
+}
+
+/* Form Styles for Modal */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    background-color: #fff;
+    font-size: 0.95rem;
+    color: var(--text-heading);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.helperText {
+    font-size: 0.75rem;
+    color: var(--text-body);
+}
+
+.buttonGroup {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.cancelButton {
+    padding: 0.75rem 1.25rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-body);
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cancelButton:hover {
+    background-color: #F1F5F9;
+    /* Slate-100 */
+    color: var(--text-heading);
+}
+
+.submitButton {
+    padding: 0.75rem 1.25rem;
+    background-color: var(--primary-blue);
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.submitButton:hover {
+    background-color: var(--primary-blue-hover);
+}

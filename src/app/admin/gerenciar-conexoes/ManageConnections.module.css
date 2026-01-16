@@ -1,0 +1,550 @@
+.layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bg-main);
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.header {
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0 0 8px 0;
+}
+
+.header p {
+    color: var(--text-body);
+    margin: 0;
+}
+
+.contentGrid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+    min-height: 600px;
+}
+
+/* Lista de Conexões */
+.connectionsList {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.connectionsList h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: var(--text-heading);
+}
+
+.connectionCard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 2px solid #F1F5F9;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.connectionCard:hover {
+    border-color: #E2E8F0;
+    background: #F8FAFC;
+}
+
+.connectionCard.active {
+    border-color: #10B981;
+    background: #ECFDF5;
+}
+
+.connectionIcon {
+    flex-shrink: 0;
+}
+
+.connectionInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.connectionInfo h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: var(--text-heading);
+}
+
+.connectionInfo p {
+    font-size: 0.875rem;
+    color: var(--text-body);
+    margin: 0 0 8px 0;
+}
+
+.connectionMeta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #EEF2FF;
+    color: #4F46E5;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-body);
+}
+
+.status {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status.connected {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status.disconnected {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-body);
+    text-align: center;
+}
+
+.emptyState svg {
+    margin-bottom: 16px;
+    color: #CBD5E1;
+}
+
+.emptyState p {
+    font-weight: 600;
+    margin: 0 0 4px 0;
+}
+
+.emptyState small {
+    font-size: 0.875rem;
+}
+
+/* Painel de Acessos */
+.accessPanel {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.panelHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #F1F5F9;
+}
+
+.panelHeader h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--text-heading);
+}
+
+.panelHeader p {
+    font-size: 0.875rem;
+    color: var(--text-body);
+    margin: 0;
+}
+
+.addButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #10B981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addButton:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.accessList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.accessCard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 2px solid #F1F5F9;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.accessCard:hover {
+    border-color: #E2E8F0;
+    background: #F8FAFC;
+}
+
+.accessUser {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.userAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.accessUser h4 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.accessUser p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-body);
+}
+
+.permissions {
+    display: flex;
+    gap: 8px;
+}
+
+.permissions span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.permYes {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.permNo {
+    background: #F1F5F9;
+    color: #64748B;
+}
+
+.revokeButton {
+    padding: 8px;
+    background: #FEE2E2;
+    color: #DC2626;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.revokeButton:hover {
+    background: #FEcaca;
+    transform: scale(1.1);
+}
+
+.emptyAccess {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: var(--text-body);
+    text-align: center;
+}
+
+.emptyAccess svg {
+    margin-bottom: 16px;
+    color: #CBD5E1;
+}
+
+.emptyAccess p {
+    margin: 0 0 20px 0;
+    font-size: 1rem;
+}
+
+.emptyButton {
+    padding: 12px 24px;
+    background: #10B981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.emptyButton:hover {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+.noSelection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+    color: var(--text-body);
+    text-align: center;
+}
+
+.noSelection svg {
+    margin-bottom: 24px;
+    color: #CBD5E1;
+}
+
+.noSelection h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.noSelection p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 2px solid #F1F5F9;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.modalHeader button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-body);
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.modalHeader button:hover {
+    background: #F1F5F9;
+    color: var(--text-heading);
+}
+
+.modalBody {
+    padding: 24px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.formGroup select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.formGroup select:focus {
+    outline: none;
+    border-color: #10B981;
+}
+
+.checkboxGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 2px solid #E2E8F0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox:hover {
+    border-color: #CBD5E1;
+    background: #F8FAFC;
+}
+
+.checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.checkbox span {
+    font-size: 0.95rem;
+    color: var(--text-heading);
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px;
+    border-top: 2px solid #F1F5F9;
+}
+
+.cancelButton {
+    padding: 10px 20px;
+    background: #F1F5F9;
+    color: var(--text-heading);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelButton:hover {
+    background: #E2E8F0;
+}
+
+.confirmButton {
+    padding: 10px 20px;
+    background: #10B981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirmButton:hover:not(:disabled) {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+.confirmButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
