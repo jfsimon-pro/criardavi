@@ -57,7 +57,7 @@ async function getChatHistory(chatId: string, limit: number = 10): Promise<ChatM
                 content: `[Áudio transcrito]: ${msg.audioTranscription}`
             };
         }
-        
+
         // Se for outra mídia, indicar
         if (msg.hasMedia && !msg.text) {
             const mediaLabels: Record<string, string> = {
@@ -72,7 +72,7 @@ async function getChatHistory(chatId: string, limit: number = 10): Promise<ChatM
                 content: mediaLabels[msg.mediaType || ''] || '[Enviou uma mídia]'
             };
         }
-        
+
         return {
             role: msg.fromMe ? 'assistant' as const : 'user' as const,
             content: msg.text || ''
@@ -88,7 +88,7 @@ async function getChatHistory(chatId: string, limit: number = 10): Promise<ChatM
 export async function transcribeAudio(audioFilePath: string): Promise<string | null> {
     try {
         const openai = getOpenAIClient();
-        
+
         // Resolver o caminho do arquivo
         let fullPath = audioFilePath;
         if (audioFilePath.startsWith('/uploads/')) {
@@ -96,31 +96,32 @@ export async function transcribeAudio(audioFilePath: string): Promise<string | n
         } else if (!path.isAbsolute(audioFilePath)) {
             fullPath = path.join(process.cwd(), 'public', audioFilePath);
         }
-        
+
         // Verificar se o arquivo existe
         if (!fs.existsSync(fullPath)) {
             console.error(`🎵 Audio file not found: ${fullPath}`);
             return null;
         }
-        
+
         console.log(`🎵 Transcribing audio: ${fullPath}`);
-        
+
         // Criar stream do arquivo para enviar ao Whisper
         const audioFile = fs.createReadStream(fullPath);
-        
+
         const transcription = await openai.audio.transcriptions.create({
             file: audioFile,
             model: 'whisper-1',
             language: 'pt', // Português brasileiro
             response_format: 'text'
         });
-        
-        const transcribedText = typeof transcription === 'string' 
-            ? transcription 
-            : transcription.text || '';
-        
+
+        // When response_format is 'text', OpenAI returns a string directly
+        const transcribedText = typeof transcription === 'string'
+            ? transcription
+            : (transcription as any).text || '';
+
         console.log(`🎵 Audio transcribed: "${transcribedText.substring(0, 100)}${transcribedText.length > 100 ? '...' : ''}"`);
-        
+
         return transcribedText || null;
     } catch (error: any) {
         console.error('🎵 Error transcribing audio:', error.message || error);
@@ -133,7 +134,7 @@ export async function transcribeAudio(audioFilePath: string): Promise<string | n
  */
 async function getAIConfig() {
     let config = await prisma.aIConfig.findFirst();
-    
+
     if (!config) {
         // Criar configuração padrão
         config = await prisma.aIConfig.create({
@@ -153,7 +154,7 @@ inclua [HANDOFF] no início da resposta e explique que vai transferir.`,
             }
         });
     }
-    
+
     return config;
 }
 
@@ -168,7 +169,7 @@ export async function generateAIResponse(
     try {
         // Buscar configuração
         const config = await getAIConfig();
-        
+
         // Verificar se IA está ativa
         if (!config.isActive) {
             console.log('🤖 AI is disabled');
@@ -234,7 +235,7 @@ export async function generateAIResponse(
         });
 
         const responseText = completion.choices[0]?.message?.content || '';
-        
+
         if (!responseText) {
             console.log('🤖 AI returned empty response');
             return {
@@ -247,7 +248,7 @@ export async function generateAIResponse(
 
         // Verificar se a IA quer fazer handoff
         const shouldHandoff = responseText.trim().toUpperCase().startsWith('[HANDOFF]');
-        
+
         // Remover o marcador [HANDOFF] da resposta final se existir
         let cleanMessage = responseText;
         if (shouldHandoff) {
@@ -266,7 +267,7 @@ export async function generateAIResponse(
 
     } catch (error: any) {
         console.error('🤖 Error generating AI response:', error);
-        
+
         // Erro específico de API key
         if (error.message?.includes('API key')) {
             return {
@@ -276,7 +277,7 @@ export async function generateAIResponse(
                 error: 'Invalid OpenAI API key'
             };
         }
-        
+
         return {
             success: false,
             message: '',
@@ -296,14 +297,14 @@ export async function checkAndSendFollowUp(chatId: string, connectionId: number)
 }> {
     try {
         const config = await getAIConfig();
-        
+
         if (!config.isActive) {
             return { shouldSend: false };
         }
 
         // Buscar follow-ups configurados
         const followUps = config.workingHours as any[] || [];
-        
+
         if (followUps.length === 0) {
             return { shouldSend: false };
         }
@@ -327,7 +328,7 @@ export async function checkAndSendFollowUp(chatId: string, connectionId: number)
         for (let i = 0; i < followUps.length; i++) {
             const step = followUps[i];
             let waitTimeMs = step.time * 1000;
-            
+
             // Converter unidade
             if (step.unit === 'minutos') waitTimeMs *= 60;
             else if (step.unit === 'horas') waitTimeMs *= 3600;
