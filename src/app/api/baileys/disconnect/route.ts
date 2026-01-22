@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { disconnectBaileys } from '@/lib/baileys-server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
                 message: 'Não autenticado'
             }, { status: 401 });
         }
-        
+
         const userId = parseInt(session.user.id);
-        
+
         await disconnectBaileys(userId);
 
         return NextResponse.json({

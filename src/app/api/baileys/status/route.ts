@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnectionStatus, getQRCode, getConnectionInfo } from '@/lib/baileys-server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
     try {
@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
                 message: 'Não autenticado'
             }, { status: 401 });
         }
-        
+
         const userId = parseInt(session.user.id);
-        
+
         const status = getConnectionStatus(userId);
         const qrCode = getQRCode(userId);
         const info = getConnectionInfo(userId);
