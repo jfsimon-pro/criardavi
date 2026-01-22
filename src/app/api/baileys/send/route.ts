@@ -16,7 +16,17 @@ export async function POST(request: NextRequest) {
 
         const userId = parseInt(session.user.id);
 
-        const status = getConnectionStatus(userId);
+        const body = await request.json();
+        const { connectionId, to, message } = body;
+
+        if (!connectionId) {
+            return NextResponse.json({
+                success: false,
+                message: 'connectionId is required'
+            }, { status: 400 });
+        }
+
+        const status = getConnectionStatus(connectionId);
 
         if (status !== 'connected') {
             return NextResponse.json({
@@ -25,9 +35,6 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const body = await request.json();
-        const { to, message } = body;
-
         if (!to || !message) {
             return NextResponse.json({
                 success: false,
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const result = await sendMessage(userId, to, message);
+        const result = await sendMessage(connectionId, userId, to, message);
 
         return NextResponse.json({
             success: true,

@@ -16,7 +16,17 @@ export async function GET(request: NextRequest) {
 
         const userId = parseInt(session.user.id);
 
-        const status = getConnectionStatus(userId);
+        // Get connectionId from query params
+        const connectionIdParam = request.nextUrl.searchParams.get('connectionId');
+        if (!connectionIdParam) {
+            return NextResponse.json({
+                success: false,
+                message: 'connectionId is required'
+            }, { status: 400 });
+        }
+        const connectionId = parseInt(connectionIdParam);
+
+        const status = getConnectionStatus(connectionId);
 
         if (status !== 'connected') {
             return NextResponse.json({
@@ -26,7 +36,7 @@ export async function GET(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const chats = await getChats(userId);
+        const chats = await getChats(connectionId, userId);
 
         return NextResponse.json({
             success: true,

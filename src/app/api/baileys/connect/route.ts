@@ -16,15 +16,26 @@ export async function POST(request: NextRequest) {
 
         const userId = parseInt(session.user.id);
 
+        // Get connectionId from request body
+        const body = await request.json();
+        const { connectionId } = body;
+
+        if (!connectionId) {
+            return NextResponse.json({
+                success: false,
+                message: 'connectionId is required'
+            }, { status: 400 });
+        }
+
         // Initialize the Baileys connection
-        await initBaileysConnection(userId);
+        await initBaileysConnection(connectionId, userId);
 
         // Wait a bit longer for QR code to be properly generated
         // Baileys needs time to initialize and generate the QR
         await new Promise(resolve => setTimeout(resolve, 3000));
 
         // Get the QR code
-        const qrCode = getQRCode(userId);
+        const qrCode = getQRCode(connectionId);
 
         if (qrCode) {
             return NextResponse.json({

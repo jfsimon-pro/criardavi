@@ -16,7 +16,21 @@ export async function GET(request: NextRequest) {
 
         const userId = parseInt(session.user.id);
 
-        const status = getConnectionStatus(userId);
+        // Get chatId and connectionId from query parameters
+        const { searchParams } = new URL(request.url);
+        const chatId = searchParams.get('chatId');
+        const connectionIdParam = searchParams.get('connectionId');
+
+        if (!connectionIdParam) {
+            return NextResponse.json({
+                success: false,
+                message: 'connectionId is required',
+                messages: []
+            }, { status: 400 });
+        }
+        const connectionId = parseInt(connectionIdParam);
+
+        const status = getConnectionStatus(connectionId);
 
         if (status !== 'connected') {
             return NextResponse.json({
@@ -26,10 +40,6 @@ export async function GET(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // Get chatId from query parameters
-        const { searchParams } = new URL(request.url);
-        const chatId = searchParams.get('chatId');
-
         if (!chatId) {
             return NextResponse.json({
                 success: false,
@@ -38,7 +48,7 @@ export async function GET(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const messages = await getChatMessages(chatId, userId);
+        const messages = await getChatMessages(chatId, connectionId);
 
         // Format messages for frontend
         const formattedMessages = messages.map((msg) => ({

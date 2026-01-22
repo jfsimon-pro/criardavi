@@ -16,7 +16,18 @@ export async function POST(request: NextRequest) {
 
         const userId = parseInt(session.user.id);
 
-        await disconnectBaileys(userId);
+        // Get connectionId from request body
+        const body = await request.json();
+        const { connectionId } = body;
+
+        if (!connectionId) {
+            return NextResponse.json({
+                success: false,
+                message: 'connectionId is required'
+            }, { status: 400 });
+        }
+
+        await disconnectBaileys(connectionId, userId);
 
         return NextResponse.json({
             success: true,
