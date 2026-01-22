@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-export default function LoginPage() {
+function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const registered = searchParams.get('registered');
@@ -179,5 +179,19 @@ export default function LoginPage() {
 
             </div>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <main className={styles.container}>
+                <div className={styles.card}>
+                    <h1 className={styles.heading}>Carregando...</h1>
+                </div>
+            </main>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }
